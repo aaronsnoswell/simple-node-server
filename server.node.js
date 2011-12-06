@@ -4,21 +4,48 @@
  * Serves on localhost:1337 like a boss
  */
 
-// Require/include the HTTP module
+
+// Require/include some modules
 var sys = require("util"),
     url = require("url")
     http = require("http"),
-    fs = require("fs");
+    fs = require("fs"),
+    qs = require("querystring");
+
 
 // Constants
 BASEDIR = "./";
 URI = "127.0.0.1";
 PORT = 1337;
 
-/*
-var routes = {
-    "patients/save" : function(file, result, contentType) {
-        // Save the attached data as a JSON object
+/* Nothing to see here at the moment, you can add routes with the following
+ * syntax:
+ * "path/to/route" : function(file, request, result, contentType){
+ *     //...
+ * }
+ *
+ * TODO ajs 06/12/11 Add support for regex parsing in route names
+ */
+var routes = {};
+
+
+// Create a new HTTP server
+http.createServer(function(request, result) {
+    /* Get the file and content type they were asking for
+     * NB: The file regex doesn't allow ../ in the path name
+     */
+    var parsed_url = url.parse(request.url),
+        uri = parsed_url.pathname,
+	    file = uri.replace(/\.\.\//g, '').substring(1) || 'index.html',
+	    contentType = mime(file);
+
+    console.log("SRV: " + file);
+    if(file in routes) {
+        // Serve the route
+        routes[file](file, request, result, contentType);
+    } else {
+	    
+	    // Read the file and stream it back
         fs.readFile(file, function(err, data) {
             if(err) {
                 // We could just throw err here, but we'll assume 404's for now
@@ -26,78 +53,26 @@ var routes = {
                     "Content-Type": "text/plain"
                 });
                 result.end("404 Not Found\n");
-                log(" => Couldn't find " + file + ", returning 404!")
+                console.log("ERR: Couldn't find " + file + ", returning 404!")
             };
             
-            result.writeHead(200, {'Content-Type': contentType});
+            result.writeHead(200, {
+                'Content-Type': contentType,
+                'Access-Control-Allow-Origin' : '*'
+            });
             result.end(data);
         });
-    }
-}
-*/
-
-var routes = {}
-
-// Create a new HTTP servere
-http.createServer(function(request, result) {
-    /* Get the file and content type they were asking for
-     * NB: The file regex doesn't allow ../ in the path name
-     */
-    var parsed_url = url.parse(request.url),
-        uri = parsed_url.pathname,
-	    file = uri.replace(/\.\.\//g,'').substring(1) || 'index.html',
-	    contentType = mime(file);
-
-    log("Serving request for: " + file + ", content type: " + contentType);
-    if((BASEDIR + file) in routes) {
-        // Serve the route
-        routes[BASEDIR + file](BASEDIR + file, result, contentType);
-    } else {
-	    streamFile(BASEDIR + file, result, contentType);
+	    
 	}
-    
-    //result.writeHead(200, {'Content-Type': 'text/plain'});
-    //result.end('Hello World\n');
     
 }).listen(PORT, URI);
 log('Server running at http://' + URI + ':' + PORT + '/');
 
 
-function streamFile(file, result, contentType) {
-    // Read the file and stream it back
-    fs.readFile(file, function(err, data) {
-        if(err) {
-            // We could just throw err here, but we'll assume 404's for now
-            result.writeHead(404, {
-                "Content-Type": "text/plain"
-            });
-            result.end("404 Not Found\n");
-            log(" => Couldn't find " + file + ", returning 404!")
-        };
-        
-        result.writeHead(200, {
-            'Content-Type': contentType,
-            'Access-Control-Allow-Origin' : '*'
-        });
-        result.end(data);
-    });
-}
 
-
-
-/* Utility functions */
-function log() {
-    var args = [];
-    for(a in arguments) {
-        var arg = arguments[a];
-        args.push(arg);
-    }
-    console.log.apply(this, args);
-}
-
-
-
-// A simple mime database
+/**
+ * A simple mime database.
+ */
 var mime;
 
 // Pseudo-module / namespacing
