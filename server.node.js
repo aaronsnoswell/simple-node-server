@@ -66,7 +66,7 @@ http.createServer(function(request, result) {
 	}
     
 }).listen(PORT, URI);
-log('Server running at http://' + URI + ':' + PORT + '/');
+console.log('Server running at http://' + URI + ':' + PORT + '/');
 
 
 
@@ -262,6 +262,7 @@ var mime;
       yaml: "text/yaml",
       yml: "text/yaml",
       zip: "application/zip"
+
     };
 })();
 
